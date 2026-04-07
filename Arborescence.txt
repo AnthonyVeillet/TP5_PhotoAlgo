@@ -1,0 +1,33 @@
+TP5/
+	rapport.html # Le rapport qui sera généré se trouvera ici, il devra avoir les bons chemins pour ses images.
+	requirements.txt
+	README.md
+	prompt.txt
+	.gitignore
+	.venv/
+	.vscode/
+	code/
+		diffusion.py
+		tp5.py
+		rapport.py
+	data/
+		dataInput/imgs/
+			baie_beauport.avif
+			baie_beauport_mask.png
+			chateau_frontenac.png
+			chateau_frontenac_mask.png
+			graffiti.png
+			graffiti_mask.png
+			moulin.png
+			moulin_mask.png
+			pisa.png
+			pisa_mask.png
+			pyramides.webp
+			pyramides_mask.png
+		dataOutput/
+			Section 1/
+			Section 2/
+			Section 3/
+			Section 4/
+			Section 5/
+			Bonus/
