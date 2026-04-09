@@ -37,8 +37,7 @@ S4_CASES = [
     ("graffiti", "png"),
     ("pisa", "png"),
     ("chateau_frontenac", "png"),
-    # TODO: Ajouter ton cas personnel ici, par exemple:
-    # ("mon_image", "png"),
+    ("mon_image1", "png"),
 ]
 
 # ---- Section 5 : Remplacement d'objets ----
@@ -46,8 +45,7 @@ S5_CASES = [
     ("pyramides", "webp"),
     ("baie_beauport", "avif"),
     ("moulin", "png"),
-    # TODO: Ajouter ton cas personnel ici, par exemple:
-    # ("mon_image_remplacement", "png"),
+    ("mon_image2", "png"),
 ]
 
 
@@ -55,107 +53,140 @@ S5_CASES = [
 # Réponses — Remplir les TODO
 # =============================================================================
 
-# ---- Section 1 : Réchauffement ----
-
-# TODO: Écris les spécifications de ton ordinateur
 SPECS_ORDINATEUR = """
-TODO: Processeur, RAM, GPU (si applicable), système d'exploitation.
+Processeur Intel Core (Gen 14), famille 6, modèle 198.
+Système d'exploitation Windows 11.
+Pas de GPU utilisé, le modèle tourne entièrement sur CPU.
 """
 
-# TODO: Écris le temps de génération observé
 TEMPS_GENERATION = """
-TODO: Temps de génération pour une image (en secondes).
+Environ 13.5 secondes par image avec 10 étapes de débruitage sur CPU.
 """
 
-# TODO: Écris les prompts que tu as utilisés
-S1_PROMPT_1 = "TODO: Écris ton premier prompt ici"
-S1_PROMPT_2 = "TODO: Écris ton deuxième prompt ici"
-S1_PROMPT_3 = "TODO: Écris ton troisième prompt ici"
+S1_PROMPT_1 = "a beautiful sunset over the ocean with pink clouds"
+S1_PROMPT_2 = "a futuristic city under water with flying cars at night"
+S1_PROMPT_3 = "a cozy cabin in a snowy mountain forest"
 
-# TODO: Discussion brève des résultats de la section 1
 DISCUSSION_S1 = """
-TODO: Discute brièvement de la qualité des images générées avec tes prompts.
+Les trois images générées sont globalement convaincantes malgré l'utilisation du modèle sur CPU.
+Le coucher de soleil est celui qui respecte le mieux son prompt, avec des nuages roses très marqués et un beau reflet sur l'océan.
+La ville futuriste présente une ambiance cohérente et un style visuel réussi, mais l'effet sous-marin et les voitures volantes restent seulement partiellement visibles.
+Le chalet enneigé est très crédible, avec un bon contraste entre la lumière chaude intérieure et l'environnement froid.
+Cette image correspond bien à l'idée d'une cabane chaleureuse en forêt enneigée, même si l'aspect montagneux n'est pas vraiment visible.
+Dans ces exemples, le modèle semble mieux réussir les scènes naturelles simples que les scènes plus complexes ou très spécifiques.
 """
 
-# ---- Section 2 : Guidage sans classifieur (CFG) ----
+S2_PROMPT = "a unicorn on the Moon, photorealistic"
 
-# TODO: Prompt utilisé pour la section 2
-S2_PROMPT = "a horse on Mars"
-
-# TODO: Que se passe-t-il lorsque guidance_scale = 1.0 ? Pourquoi ?
 REPONSE_CFG_1 = """
-TODO: Répondre ici.
+Lorsque guidance_scale = 1.0, le guidage supplémentaire du CFG disparaît.
+La génération reste liée au prompt, mais sans renforcement notable.
+Dans mes résultats, l'image ne ressemble toujours pas clairement à une licorne sur la Lune.
+On observe surtout une forme déformée héritée des faibles valeurs de guidage.
+Le texte influence donc encore trop peu la scène pour imposer le bon contenu.
+Cette valeur reste insuffisante pour obtenir un résultat fidèle ici.
 """
 
-# TODO: À quelle échelle de guidage observez-vous la meilleure adhérence au prompt ?
 REPONSE_CFG_2 = """
-TODO: Répondre ici.
+La meilleure adhérence au prompt est observée autour de scale = 10.0.
+On distingue clairement une licorne blanche sur un sol lunaire.
+La grande Lune en arrière-plan rend la scène très cohérente.
+L'image est lisible, détaillée et encore assez photoréaliste.
+Le résultat à 7.5 est aussi bon, mais un peu moins convaincant visuellement.
+Scale = 10.0 donne ici le meilleur compromis entre fidélité et qualité.
 """
 
-# TODO: À quelle échelle de guidage les artéfacts commencent-ils à apparaître ?
 REPONSE_CFG_3 = """
-TODO: Répondre ici.
+Les artéfacts commencent à apparaître clairement à partir de scale = 15.0.
+Les couleurs deviennent plus artificielles et le rendu moins naturel.
+À 20.0, l'image est déjà plus stylisée que photoréaliste.
+À 40.0, la silhouette se déforme fortement et le fond devient très exagéré.
+À 60.0, l'image est presque abstraite et difficilement exploitable.
+Un guidage trop élevé dégrade donc rapidement la qualité visuelle.
 """
 
-# TODO: Discussion résumant vos observations sur le CFG
 DISCUSSION_S2 = """
-TODO: Discussion brève résumant vos observations.
+L'expérience montre bien l'effet du facteur de guidage sur la génération.
+De 0.0 à 3.0, les images suivent très mal le prompt demandé.
+À partir de 5.0, la licorne et le décor lunaire deviennent reconnaissables.
+La meilleure zone se situe entre 7.5 et 10.0, avec un bon équilibre global.
+Au-delà de 15.0, les artéfacts deviennent visibles et augmentent rapidement.
+Ces résultats montrent bien le compromis entre fidélité au texte et stabilité visuelle.
 """
 
-# ---- Section 3 : Implémentation de l'inpainting ----
-
-# TODO: Décrivez votre implémentation d'inpainting
 DESCRIPTION_INPAINTING = """
-TODO: Décrivez les modifications apportées à generate_image pour supporter l'inpainting.
-Expliquez les étapes : encodage VAE de l'image, création du masque latent,
-fusion à chaque étape de débruitage, etc.
+L'implémentation de l'inpainting repose sur la modification de la fonction generate_image dans diffusion.py.
+Deux nouveaux paramètres optionnels ont été ajoutés, soit une image d'entrée et un masque binaire.
+
+Avant la boucle de débruitage, l'image et le masque sont redimensionnés à la taille cible (512x512).
+L'image est ensuite convertie en tenseur normalisé entre -1 et 1 puis encodée dans l'espace latent par le VAE du pipeline.
+Le masque est aussi converti en tenseur [0, 1] et réduit aux dimensions latentes (64x64) avec une interpolation nearest-neighbor.
+
+À chaque étape de débruitage, les régions non masquées sont fusionnées avec les latents de l'image originale bruitée.
+La formule utilisée est latents = (1 - mask_latent) * noisy_orig_latents + mask_latent * latents.
+Cela permet de garder l'image d'origine hors du masque, tout en générant librement dans la zone masquée.
+
+Le résultat sur chateau_frontenac montre que la personne a bien été retirée.
+La reconstruction reste globalement cohérente avec la scène, même si la façade reconstruite présente quelques déformations visibles.
 """
 
-# ---- Section 4 : Suppression d'objets ----
-
-# TODO: Prompts utilisés pour chaque suppression
 S4_PROMPTS = {
-    "graffiti": "TODO: prompt utilisé",
-    "pisa": "TODO: prompt utilisé",
-    "chateau_frontenac": "TODO: prompt utilisé",
-    # TODO: Ajouter le prompt de ton cas personnel
-    # "mon_image": "TODO: prompt utilisé",
+    "graffiti": "a clean brick wall",
+    "pisa": "a green field with blue sky and buildings",
+    "chateau_frontenac": "a cobblestone street in front of a historic castle",
+    "mon_image1": "a bar table with society games on a shelf in the background",
 }
 
-# TODO: Discussion des résultats de suppression
 DISCUSSION_S4 = """
-TODO: Discutez des résultats. Quels types d'arrière-plans sont les plus faciles/difficiles
-à reconstruire ? Comment la taille de l'objet supprimé affecte-t-elle la qualité ?
-Quelles stratégies de prompts fonctionnent le mieux ?
+La suppression de la tour de Pise est le meilleur résultat, car la zone retirée est remplacée assez naturellement par du gazon, un arbre et du ciel, malgré un léger artéfact rectangulaire dans le ciel.
+Le Château Frontenac donne un résultat acceptable, la personne disparaît bien, mais la façade reconstruite présente des déformations visibles et un léger flou.
+La suppression du graffiti fonctionne partiellement, car le mur est reconstruit, mais on distingue encore des traces du texte et une texture de briques peu réaliste.
+Dans l'image personnelle, le résultat est le moins convaincant. La scène devient déformée et le modèle génère des verres et objets imprécis sur la table.
+Dans mes essais, les arrière-plans ouverts et peu structurés sont les plus faciles à reconstruire, tandis que les zones riches en détails ou en géométrie sont plus difficiles.
+Des prompts précis décrivant clairement l'arrière-plan donnent de meilleurs résultats, mais la taille de l'objet supprimé influence aussi fortement la qualité finale.
 """
 
-# ---- Section 5 : Remplacement d'objets ----
-
-# TODO: Prompts utilisés pour chaque remplacement
 S5_PROMPTS = {
-    "pyramides": "TODO: prompt utilisé",
-    "baie_beauport": "TODO: prompt utilisé",
-    "moulin": "TODO: prompt utilisé",
-    # TODO: Ajouter le prompt de ton cas personnel
-    # "mon_image_remplacement": "TODO: prompt utilisé",
+    "pyramides": "snow covered pyramid in a winter desert",
+    "baie_beauport": "a penguin standing on a sandy beach",
+    "moulin": "a giant standing in a field",
+    "mon_image2": "a road going to an ice castle in a snowy landscape with mountains in the background",
 }
 
-# TODO: Discussion des résultats de remplacement
 DISCUSSION_S5 = """
-TODO: Discutez de la cohérence de l'éclairage, de l'échelle appropriée
-et de la qualité des bords pour chaque remplacement.
+Le remplacement sur les pyramides est le plus réussi. La neige s'intègre bien à la scène et le Sphinx reste visible, même si le palmier vert réduit un peu le réalisme.
+À la baie de Beauport, le résultat est moins convaincant, car le modèle génère plusieurs formes ressemblant à des pingouins ainsi qu'une structure étrange qui ne correspond pas vraiment au prompt.
+Le moulin remplacé par un géant donne une silhouette crédible de loin, mais le résultat reste abstrait et on distingue encore légèrement la forme du moulin d'origine.
+Dans l'image personnelle, le décor est bien transformé en paysage montagneux enneigé et le résultat reste cohérent avec la scène.
+En revanche, le château de glace demandé n'apparaît pas clairement dans l'image finale.
+Dans mes essais, le modèle réussit mieux les changements d'ambiance ou de décor que l'insertion d'objets précis et bien définis.
 """
 
 # ---- Prompts IA ----
 
 # TODO: Copie ici ton premier prompt utilisé avec l'IA
 PROMPT_IA_1 = """
-TODO: Coller ici le premier exemple de prompt IA utilisé.
+Yo
+1. Analyse et comprend le travail que je dois faire en Python, soit TP5.pdf
+2. Analyse les fichier de codes fournis par le professeur, ainsi que l'arborescence actuelle de mon projet (voir fichier Arborescence.txt).
+3. Fait moi un plan détaillé de ce que je vais devoir faire ainsi qu'un plan des différents dossiers et fichiers que je vais devoir créer et
+faire (arborescence de mon projet). Toutefois, dans TP5.pdf, n'utilise pas l'emplacement qu'il est mentionné pour mon rapport, utilise plutôt mon Arborescence.txt.
+4. Fait moi un plan détaillé (nom des fonctions, noms des variables, et explication de ce que fait chaque fonction). Je veux que tu sois mon tuteur et que tu favories
+mon apprentissage, donc ne me donne pas le code complêt. Je veux que te m'aide. S'il te manque d'informations pour en compléter certain, dit moi le et ajoute des zones TODO expliquant quoi
+faire. Dit moi les librairies nécessaire au fonctionnement du code. Le seule code que je te permet de me faire au complet sont les fichiers de code qui ne sont
+pas directement lié au fonction que je doit faire dans le projet, par exemple le code pour s'occuper d'importer et d'exporter.
+5. Dans arbo.txt, tu trouveras l'emplacement des images, ainsi que les dossiers où seront mes images généré.
+6. Ne t'occupe pas de la section des questions à répondre dans le rapport, pour l'instant.
+7. Finalement, analyse l'énoncé du TP5.pdf pour chaque étapes que je dois faire, dit moi pour quel étapes est-ce que je vais avoir des questions a répondre dans mon rapport.
+8. Avant de donner ta réponse, mentionne moi s'il te manque des informations où si quelque chose est pas clair. Si tu as toutes l'informations nécessaire pour
+faire ta réponse, analyse la pour etre certain qu'elle répond à mes critères et aux attentes de TP5.pdf. Tu n'as aucune limite de temps pour répondre.
 """
 
 # TODO: Copie ici ton deuxième prompt utilisé avec l'IA
 PROMPT_IA_2 = """
-TODO: Coller ici le deuxième exemple de prompt IA utilisé.
+Yo
+Pour le rapport, voici un exemple de rapport pour le TP4. Peux tu refaire ton code pour le rapport du TP5 en prenant comme exemple celui-ci.
+De plus, inidque avec des TODO l'endroite où que je vais devoir ecrire mes reponse. Comme pour le rapport du TP4, ajoute moi 2 zones pour mettre des exemple de prompt
 """
 
 

@@ -111,10 +111,10 @@ def section1(pipe, device: str):
         print(f"GPU        : {torch.cuda.get_device_name(0)}")
     print()
 
-    # TODO Prompts utilisés pour la génération
+    # Prompts utilisés pour la génération
     prompts = [
-        "a beautiful sunset over the ocean with orange clouds",
-        "a futuristic city with flying cars at night",
+        "a beautiful sunset over the ocean with pink clouds",
+        "a futuristic city under water with flying cars at night",
         "a cozy cabin in a snowy mountain forest",
     ]
 
@@ -143,7 +143,7 @@ def section2(pipe, device: str):
     out_dir = os.path.join(OUTPUT_DIR, "Section 2")
     os.makedirs(out_dir, exist_ok=True)
 
-    prompt = "a horse on Mars"
+    prompt = "a unicorn on the Moon, photorealistic"
     scales = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 7.5, 10.0, 15.0, 20.0, 40.0, 60.0]
 
     images = []
@@ -223,8 +223,8 @@ def section4(pipe, device: str):
         ("pisa.png", "pisa_mask.png", "a green field with blue sky and buildings"),
         ("chateau_frontenac.png", "chateau_frontenac_mask.png",
         "a cobblestone street in front of a historic castle"),
-        # TODO Cas personnel ici (image perso + masque perso)
-        # ("mon_image.png", "mon_image_mask.png", "prompt décrivant l'arrière-plan"),
+        # Cas personnel ici (image perso + masque perso)
+        ("mon_image1.png", "mon_image1_mask.png", "a bar table with society games on a shelf in the background"),
     ]
 
     for img_name, mask_name, prompt in cases:
@@ -268,8 +268,8 @@ def section5(pipe, device: str):
         ("pyramides.webp", "pyramides_mask.png", "snow covered pyramid in a winter desert"),
         ("baie_beauport.avif", "baie_beauport_mask.png", "a penguin standing on a sandy beach"),
         ("moulin.png", "moulin_mask.png", "a giant standing in a field"),
-        # TODO Cas personnel ici (image perso + masque perso)
-        # ("mon_image.png", "mon_image_mask.png", "prompt de remplacement"),
+        # Cas personnel ici (image perso + masque perso)
+        ("mon_image2.png", "mon_image2_mask.png", "a road going to an ice castle in a snowy landscape with mountains in the background"),
     ]
 
     for img_name, mask_name, prompt in cases:

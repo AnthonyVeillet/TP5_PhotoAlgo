@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎨 Rapport TP5 — Synthèse d'images génératives et inpainting</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap');
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      font-weight: 700;
+      margin: 0 0 10px 0;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .author {
+      font-size: 1.15em;
+      color: #b0b0b0;
+      margin-bottom: 6px;
+    }
+
+    .date-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      padding: 8px 20px;
+      border-radius: 20px;
+      margin-top: 12px;
+      font-size: 0.9em;
+      color: #b0b0b0;
+    }
+
+    .image-section {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .image-section h2 {
+      color: #778da9;
+      font-size: 1.6em;
+      margin: 0 0 25px 0;
+      padding-bottom: 15px;
+      border-bottom: 2px solid rgba(119, 141, 169, 0.25);
+    }
+
+    h3 { color: #e0e1dd; font-size: 1.3em; margin: 26px 0 14px 0; }
+    h4 { margin: 18px 0 10px 0; color: #dbe2ef; }
+
+    .figure-container {
+      text-align: center;
+      margin: 15px 0;
+      padding: 15px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+    }
+
+    .figure-container img {
+      max-width: 100%;
+      max-height: 600px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .figure-container img:hover {
+      transform: scale(1.015);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+    }
+
+    .figure-caption {
+      margin-top: 10px;
+      font-style: italic;
+      color: #a0a0a0;
+      font-size: 0.9em;
+    }
+
+    .comparison-images {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 10px 0;
+    }
+
+    .comparison-image-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .comparison-image-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+
+    .comparison-image-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .comparison-image-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+      color: #fff;
+      padding: 12px 8px 8px;
+      font-size: 0.85em;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .text-block, .decl-ia {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 18px;
+      margin: 18px 0 0 0;
+    }
+
+    .decl-ia { border-left: 4px solid #778da9; }
+
+    .text-block-title {
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+
+    .text-content {
+      color: #d0d0d0;
+      line-height: 1.7;
+      font-size: 1em;
+    }
+
+    .soft-hr {
+      border: none;
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+      margin: 22px 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #777;
+      font-size: 0.95em;
+    }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.92);
+      animation: fadeIn 0.2s;
+    }
+
+    .lightbox.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox-content {
+      max-width: 95vw;
+      max-height: 95vh;
+      padding: 18px;
+    }
+
+    .lightbox-content img {
+      max-width: 100%;
+      max-height: 95vh;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 16px; right: 30px;
+      color: #fff;
+      font-size: 44px;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .lightbox-close:hover { color: #ffc107; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 900px) {
+      .comparison-images { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+    <span class="lightbox-close">&times;</span>
+    <div class="lightbox-content">
+      <img id="lightbox-img" src="" alt="">
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>🎨 Rapport TP5 — Synthèse d'images génératives et inpainting</h1>
+      <div class="author">Anthony Veillet</div>
+      <div class="date-badge">Généré le 09 April 2026 à 00:36</div>
+    </header>
+
+    
+    <section class="image-section">
+        <h2>1. Réchauffement (15%)</h2>
+        
+    <div class="text-block">
+        <div class="text-block-title">📝 Spécifications de l'ordinateur</div>
+        <div class="text-content">Processeur Intel Core (Gen 14), famille 6, modèle 198.<br>
+Système d'exploitation Windows 11.<br>
+Pas de GPU utilisé, le modèle tourne entièrement sur CPU.</div>
+    </div>
+    <div class="text-block">
+        <div class="text-block-title">📝 Temps de génération</div>
+        <div class="text-content">Environ 13.5 secondes par image avec 10 étapes de débruitage sur CPU.</div>
+    </div><h3>Images générées</h3><h4>Prompt 1 : « a beautiful sunset over the ocean with pink clouds »</h4>
+    <div class="figure-container">
+        <img src="data/dataOutput/Section 1/gen_1.png" alt="Prompt : a beautiful sunset over the ocean with pink clouds" data-fullsize="data/dataOutput/Section 1/gen_1.png"
+             onclick="openLightbox(this)" style="max-width:80%;" />
+        <p class="figure-caption">Prompt : a beautiful sunset over the ocean with pink clouds</p>
+    </div><h4>Prompt 2 : « a futuristic city under water with flying cars at night »</h4>
+    <div class="figure-container">
+        <img src="data/dataOutput/Section 1/gen_2.png" alt="Prompt : a futuristic city under water with flying cars at night" data-fullsize="data/dataOutput/Section 1/gen_2.png"
+             onclick="openLightbox(this)" style="max-width:80%;" />
+        <p class="figure-caption">Prompt : a futuristic city under water with flying cars at night</p>
+    </div><h4>Prompt 3 : « a cozy cabin in a snowy mountain forest »</h4>
+    <div class="figure-container">
+        <img src="data/dataOutput/Section 1/gen_3.png" alt="Prompt : a cozy cabin in a snowy mountain forest" data-fullsize="data/dataOutput/Section 1/gen_3.png"
+             onclick="openLightbox(this)" style="max-width:80%;" />
+        <p class="figure-caption">Prompt : a cozy cabin in a snowy mountain forest</p>
+    </div>
+    <div class="text-block">
+        <div class="text-block-title">📝 Discussion</div>
+        <div class="text-content">Les trois images générées sont globalement convaincantes malgré l'utilisation du modèle sur CPU.<br>
+Le coucher de soleil est celui qui respecte le mieux son prompt, avec des nuages roses très marqués et un beau reflet sur l'océan.<br>
+La ville futuriste présente une ambiance cohérente et un style visuel réussi, mais l'effet sous-marin et les voitures volantes restent seulement partiellement visibles.<br>
+Le chalet enneigé est très crédible, avec un bon contraste entre la lumière chaude intérieure et l'environnement froid.<br>
+Cette image correspond bien à l'idée d'une cabane chaleureuse en forêt enneigée, même si l'aspect montagneux n'est pas vraiment visible.<br>
+Dans ces exemples, le modèle semble mieux réussir les scènes naturelles simples que les scènes plus complexes ou très spécifiques.</div>
+    </div>
+    </section>
+    
+    <section class="image-section">
+        <h2>2. Guidage sans classifieur — CFG (15%)</h2>
+        <p style='color:#a0a0a0;'>Prompt utilisé : <b>« a unicorn on the Moon, photorealistic »</b></p><h3>Grille comparative des échelles de guidage</h3>
+    <div class="figure-container">
+        <img src="data/dataOutput/Section 2/cfg_grid.png" alt="Grille CFG — toutes les échelles de guidage" data-fullsize="data/dataOutput/Section 2/cfg_grid.png"
+             onclick="openLightbox(this)" style="max-width:95%;" />
+        <p class="figure-caption">Grille CFG — toutes les échelles de guidage</p>
+    </div><h3>Images individuelles</h3><div class="comparison-images" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_0.0.png" alt="scale = 0.0" data-fullsize="data/dataOutput/Section 2/cfg_0.0.png">
+            <div class="comparison-image-label">scale = 0.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_0.5.png" alt="scale = 0.5" data-fullsize="data/dataOutput/Section 2/cfg_0.5.png">
+            <div class="comparison-image-label">scale = 0.5</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_1.0.png" alt="scale = 1.0" data-fullsize="data/dataOutput/Section 2/cfg_1.0.png">
+            <div class="comparison-image-label">scale = 1.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_2.0.png" alt="scale = 2.0" data-fullsize="data/dataOutput/Section 2/cfg_2.0.png">
+            <div class="comparison-image-label">scale = 2.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_3.0.png" alt="scale = 3.0" data-fullsize="data/dataOutput/Section 2/cfg_3.0.png">
+            <div class="comparison-image-label">scale = 3.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_5.0.png" alt="scale = 5.0" data-fullsize="data/dataOutput/Section 2/cfg_5.0.png">
+            <div class="comparison-image-label">scale = 5.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_7.5.png" alt="scale = 7.5" data-fullsize="data/dataOutput/Section 2/cfg_7.5.png">
+            <div class="comparison-image-label">scale = 7.5</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_10.0.png" alt="scale = 10.0" data-fullsize="data/dataOutput/Section 2/cfg_10.0.png">
+            <div class="comparison-image-label">scale = 10.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_15.0.png" alt="scale = 15.0" data-fullsize="data/dataOutput/Section 2/cfg_15.0.png">
+            <div class="comparison-image-label">scale = 15.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_20.0.png" alt="scale = 20.0" data-fullsize="data/dataOutput/Section 2/cfg_20.0.png">
+            <div class="comparison-image-label">scale = 20.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_40.0.png" alt="scale = 40.0" data-fullsize="data/dataOutput/Section 2/cfg_40.0.png">
+            <div class="comparison-image-label">scale = 40.0</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 2/cfg_60.0.png" alt="scale = 60.0" data-fullsize="data/dataOutput/Section 2/cfg_60.0.png">
+            <div class="comparison-image-label">scale = 60.0</div>
+        </div></div><hr class='soft-hr' /><h3>Questions d'analyse</h3>
+    <div class="text-block">
+        <div class="text-block-title">📝 Que se passe-t-il lorsque guidance_scale = 1.0 ? Pourquoi ?</div>
+        <div class="text-content">Lorsque guidance_scale = 1.0, le guidage supplémentaire du CFG disparaît.<br>
+La génération reste liée au prompt, mais sans renforcement notable.<br>
+Dans mes résultats, l'image ne ressemble toujours pas clairement à une licorne sur la Lune.<br>
+On observe surtout une forme déformée héritée des faibles valeurs de guidage.<br>
+Le texte influence donc encore trop peu la scène pour imposer le bon contenu.<br>
+Cette valeur reste insuffisante pour obtenir un résultat fidèle ici.</div>
+    </div>
+    <div class="text-block">
+        <div class="text-block-title">📝 Meilleure adhérence au prompt — à quelle échelle ?</div>
+        <div class="text-content">La meilleure adhérence au prompt est observée autour de scale = 10.0.<br>
+On distingue clairement une licorne blanche sur un sol lunaire.<br>
+La grande Lune en arrière-plan rend la scène très cohérente.<br>
+L'image est lisible, détaillée et encore assez photoréaliste.<br>
+Le résultat à 7.5 est aussi bon, mais un peu moins convaincant visuellement.<br>
+Scale = 10.0 donne ici le meilleur compromis entre fidélité et qualité.</div>
+    </div>
+    <div class="text-block">
+        <div class="text-block-title">📝 Apparition des artéfacts — à quelle échelle ?</div>
+        <div class="text-content">Les artéfacts commencent à apparaître clairement à partir de scale = 15.0.<br>
+Les couleurs deviennent plus artificielles et le rendu moins naturel.<br>
+À 20.0, l'image est déjà plus stylisée que photoréaliste.<br>
+À 40.0, la silhouette se déforme fortement et le fond devient très exagéré.<br>
+À 60.0, l'image est presque abstraite et difficilement exploitable.<br>
+Un guidage trop élevé dégrade donc rapidement la qualité visuelle.</div>
+    </div>
+    <div class="text-block">
+        <div class="text-block-title">📝 Discussion</div>
+        <div class="text-content">L'expérience montre bien l'effet du facteur de guidage sur la génération.<br>
+De 0.0 à 3.0, les images suivent très mal le prompt demandé.<br>
+À partir de 5.0, la licorne et le décor lunaire deviennent reconnaissables.<br>
+La meilleure zone se situe entre 7.5 et 10.0, avec un bon équilibre global.<br>
+Au-delà de 15.0, les artéfacts deviennent visibles et augmentent rapidement.<br>
+Ces résultats montrent bien le compromis entre fidélité au texte et stabilité visuelle.</div>
+    </div>
+    </section>
+    
+    <section class="image-section">
+        <h2>3. Implémentation de l'inpainting (30%)</h2>
+        
+    <div class="text-block">
+        <div class="text-block-title">📝 Description de l'implémentation</div>
+        <div class="text-content">L'implémentation de l'inpainting repose sur la modification de la fonction generate_image dans diffusion.py.<br>
+Deux nouveaux paramètres optionnels ont été ajoutés, soit une image d'entrée et un masque binaire.<br>
+<br>
+Avant la boucle de débruitage, l'image et le masque sont redimensionnés à la taille cible (512x512).<br>
+L'image est ensuite convertie en tenseur normalisé entre -1 et 1 puis encodée dans l'espace latent par le VAE du pipeline.<br>
+Le masque est aussi converti en tenseur [0, 1] et réduit aux dimensions latentes (64x64) avec une interpolation nearest-neighbor.<br>
+<br>
+À chaque étape de débruitage, les régions non masquées sont fusionnées avec les latents de l'image originale bruitée.<br>
+La formule utilisée est latents = (1 - mask_latent) * noisy_orig_latents + mask_latent * latents.<br>
+Cela permet de garder l'image d'origine hors du masque, tout en générant librement dans la zone masquée.<br>
+<br>
+Le résultat sur chateau_frontenac montre que la personne a bien été retirée.<br>
+La reconstruction reste globalement cohérente avec la scène, même si la façade reconstruite présente quelques déformations visibles.</div>
+    </div><h3>Validation</h3>
+    <div class="figure-container">
+        <img src="data/dataOutput/Section 3/inpainting_test.png" alt="Test d'inpainting — chateau_frontenac" data-fullsize="data/dataOutput/Section 3/inpainting_test.png"
+             onclick="openLightbox(this)" style="max-width:80%;" />
+        <p class="figure-caption">Test d'inpainting — chateau_frontenac</p>
+    </div>
+    </section>
+    
+    <section class="image-section">
+        <h2>4. Suppression d'objets (15%)</h2>
+        <h3>graffiti</h3><p style='color:#a0a0a0;'>Prompt : <b>« a clean brick wall »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/graffiti.png" alt="Original" data-fullsize="data/dataInput/imgs/graffiti.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/graffiti_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/graffiti_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 4/graffiti_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 4/graffiti_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>pisa</h3><p style='color:#a0a0a0;'>Prompt : <b>« a green field with blue sky and buildings »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/pisa.png" alt="Original" data-fullsize="data/dataInput/imgs/pisa.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/pisa_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/pisa_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 4/pisa_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 4/pisa_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>chateau_frontenac</h3><p style='color:#a0a0a0;'>Prompt : <b>« a cobblestone street in front of a historic castle »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/chateau_frontenac.png" alt="Original" data-fullsize="data/dataInput/imgs/chateau_frontenac.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/chateau_frontenac_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/chateau_frontenac_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 4/chateau_frontenac_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 4/chateau_frontenac_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>mon_image1</h3><p style='color:#a0a0a0;'>Prompt : <b>« a bar table with society games on a shelf in the background »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/mon_image1.png" alt="Original" data-fullsize="data/dataInput/imgs/mon_image1.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/mon_image1_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/mon_image1_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 4/mon_image1_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 4/mon_image1_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' />
+    <div class="text-block">
+        <div class="text-block-title">📝 Discussion — Suppression d'objets</div>
+        <div class="text-content">La suppression de la tour de Pise est le meilleur résultat, car la zone retirée est remplacée assez naturellement par du gazon, un arbre et du ciel, malgré un léger artéfact rectangulaire dans le ciel.<br>
+Le Château Frontenac donne un résultat acceptable, la personne disparaît bien, mais la façade reconstruite présente des déformations visibles et un léger flou.<br>
+La suppression du graffiti fonctionne partiellement, car le mur est reconstruit, mais on distingue encore des traces du texte et une texture de briques peu réaliste.<br>
+Dans l'image personnelle, le résultat est le moins convaincant. La scène devient déformée et le modèle génère des verres et objets imprécis sur la table.<br>
+Dans mes essais, les arrière-plans ouverts et peu structurés sont les plus faciles à reconstruire, tandis que les zones riches en détails ou en géométrie sont plus difficiles.<br>
+Des prompts précis décrivant clairement l'arrière-plan donnent de meilleurs résultats, mais la taille de l'objet supprimé influence aussi fortement la qualité finale.</div>
+    </div>
+    </section>
+    
+    <section class="image-section">
+        <h2>5. Remplacement d'objets (15%)</h2>
+        <h3>pyramides</h3><p style='color:#a0a0a0;'>Prompt : <b>« snow covered pyramid in a winter desert »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/pyramides.webp" alt="Original" data-fullsize="data/dataInput/imgs/pyramides.webp">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/pyramides_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/pyramides_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 5/pyramides_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 5/pyramides_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>baie_beauport</h3><p style='color:#a0a0a0;'>Prompt : <b>« a penguin standing on a sandy beach »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/baie_beauport.avif" alt="Original" data-fullsize="data/dataInput/imgs/baie_beauport.avif">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/baie_beauport_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/baie_beauport_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 5/baie_beauport_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 5/baie_beauport_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>moulin</h3><p style='color:#a0a0a0;'>Prompt : <b>« a giant standing in a field »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/moulin.png" alt="Original" data-fullsize="data/dataInput/imgs/moulin.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/moulin_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/moulin_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 5/moulin_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 5/moulin_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' /><h3>mon_image2</h3><p style='color:#a0a0a0;'>Prompt : <b>« a road going to an ice castle in a snowy landscape with mountains in the background »</b></p><div class="comparison-images" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/mon_image2.png" alt="Original" data-fullsize="data/dataInput/imgs/mon_image2.png">
+            <div class="comparison-image-label">Original</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataInput/imgs/mon_image2_mask.png" alt="Masque" data-fullsize="data/dataInput/imgs/mon_image2_mask.png">
+            <div class="comparison-image-label">Masque</div>
+        </div>
+        <div class="comparison-image-item" onclick="openLightbox(this.querySelector('img'))">
+            <img src="data/dataOutput/Section 5/mon_image2_result.png" alt="Résultat" data-fullsize="data/dataOutput/Section 5/mon_image2_result.png">
+            <div class="comparison-image-label">Résultat</div>
+        </div></div><hr class='soft-hr' />
+    <div class="text-block">
+        <div class="text-block-title">📝 Discussion — Remplacement d'objets</div>
+        <div class="text-content">Le remplacement sur les pyramides est le plus réussi. La neige s'intègre bien à la scène et le Sphinx reste visible, même si le palmier vert réduit un peu le réalisme.<br>
+À la baie de Beauport, le résultat est moins convaincant, car le modèle génère plusieurs formes ressemblant à des pingouins ainsi qu'une structure étrange qui ne correspond pas vraiment au prompt.<br>
+Le moulin remplacé par un géant donne une silhouette crédible de loin, mais le résultat reste abstrait et on distingue encore légèrement la forme du moulin d'origine.<br>
+Dans l'image personnelle, le décor est bien transformé en paysage montagneux enneigé et le résultat reste cohérent avec la scène.<br>
+En revanche, le château de glace demandé n'apparaît pas clairement dans l'image finale.<br>
+Dans mes essais, le modèle réussit mieux les changements d'ambiance ou de décor que l'insertion d'objets précis et bien définis.</div>
+    </div>
+    </section>
+    
+    <section class="image-section">
+        <h2>Annexe — Exemples de prompts IA utilisés</h2>
+        
+    <div class="text-block">
+        <div class="text-block-title">📝 Exemple de prompt 1</div>
+        <div class="text-content">Yo<br>
+1. Analyse et comprend le travail que je dois faire en Python, soit TP5.pdf<br>
+2. Analyse les fichier de codes fournis par le professeur, ainsi que l'arborescence actuelle de mon projet (voir fichier Arborescence.txt).<br>
+3. Fait moi un plan détaillé de ce que je vais devoir faire ainsi qu'un plan des différents dossiers et fichiers que je vais devoir créer et<br>
+faire (arborescence de mon projet). Toutefois, dans TP5.pdf, n'utilise pas l'emplacement qu'il est mentionné pour mon rapport, utilise plutôt mon Arborescence.txt.<br>
+4. Fait moi un plan détaillé (nom des fonctions, noms des variables, et explication de ce que fait chaque fonction). Je veux que tu sois mon tuteur et que tu favories<br>
+mon apprentissage, donc ne me donne pas le code complêt. Je veux que te m'aide. S'il te manque d'informations pour en compléter certain, dit moi le et ajoute des zones TODO expliquant quoi<br>
+faire. Dit moi les librairies nécessaire au fonctionnement du code. Le seule code que je te permet de me faire au complet sont les fichiers de code qui ne sont<br>
+pas directement lié au fonction que je doit faire dans le projet, par exemple le code pour s'occuper d'importer et d'exporter.<br>
+5. Dans arbo.txt, tu trouveras l'emplacement des images, ainsi que les dossiers où seront mes images généré.<br>
+6. Ne t'occupe pas de la section des questions à répondre dans le rapport, pour l'instant.<br>
+7. Finalement, analyse l'énoncé du TP5.pdf pour chaque étapes que je dois faire, dit moi pour quel étapes est-ce que je vais avoir des questions a répondre dans mon rapport.<br>
+8. Avant de donner ta réponse, mentionne moi s'il te manque des informations où si quelque chose est pas clair. Si tu as toutes l'informations nécessaire pour<br>
+faire ta réponse, analyse la pour etre certain qu'elle répond à mes critères et aux attentes de TP5.pdf. Tu n'as aucune limite de temps pour répondre.</div>
+    </div><hr class='soft-hr' />
+    <div class="text-block">
+        <div class="text-block-title">📝 Exemple de prompt 2</div>
+        <div class="text-content">Yo<br>
+Pour le rapport, voici un exemple de rapport pour le TP4. Peux tu refaire ton code pour le rapport du TP5 en prenant comme exemple celui-ci.<br>
+De plus, inidque avec des TODO l'endroite où que je vais devoir ecrire mes reponse. Comme pour le rapport du TP4, ajoute moi 2 zones pour mettre des exemple de prompt</div>
+    </div>
+    </section>
+
+    <footer>
+      <p>Photographie algorithmique — TP5 | Modèles de diffusion</p>
+    </footer>
+  </div>
+
+  <script>
+    function openLightbox(img) {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+      lightboxImg.src = img.getAttribute('data-fullsize') || img.src;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox(event) {
+      const lightbox = document.getElementById('lightbox');
+      if (event.target === lightbox || event.target.classList.contains('lightbox-close')) {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = 'auto';
+      }
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = 'auto';
+      }
+    });
+  </script>
+</body>
+</html>
