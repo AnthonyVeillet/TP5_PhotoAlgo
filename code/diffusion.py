@@ -1,4 +1,10 @@
+# diffusion.py
+# Librairies nécessaires : torch, tqdm, numpy, Pillow
+# pip install torch tqdm numpy Pillow
+
 import torch
+import numpy as np
+from PIL import Image
 from tqdm.auto import tqdm
 
 
@@ -11,9 +17,13 @@ def generate_image(
     height: int = 512,
     width: int = 512,
     generator: torch.Generator | None = None,
+    image: Image.Image | None = None,
+    mask: Image.Image | None = None,
 ):
     """
-    Boucle de diffusion.
+    Boucle de diffusion avec support optionnel d'inpainting.
+    Si image et mask sont fournis, effectue l'inpainting.
+    Le masque doit être blanc (255) là où on veut régénérer, noir (0) là où on conserve.
     """
     device = pipe.device
 
@@ -36,7 +46,7 @@ def generate_image(
     )
     uncond_embeddings = pipe.text_encoder(uncond_input.input_ids.to(device))[0]
 
-    # Concaténer les embeddings conditionnels et inconditionnels pour une seule passe (forward pass)
+    # Concaténer les embeddings conditionnels et inconditionnels
     prompt_embeds = torch.cat([uncond_embeddings, text_embeddings])
 
     # 2. Préparer les pas de temps (timesteps)
@@ -52,8 +62,41 @@ def generate_image(
     )
     latents = latents * pipe.scheduler.init_noise_sigma
 
+    # --- Préparation inpainting (si image et mask fournis) --- DEBUT AJOUT V1
+    inpainting_mode = image is not None and mask is not None
+    if inpainting_mode:
+        # Redimensionner image et masque
+        image = image.resize((width, height), Image.Resampling.LANCZOS)
+        mask = mask.resize((width, height), Image.Resampling.LANCZOS)
+ 
+        # Convertir l'image en tenseur [-1, 1]
+        img_array = np.array(image.convert("RGB")).astype(np.float32) / 127.5 - 1.0
+        img_tensor = (
+            torch.from_numpy(img_array)
+            .permute(2, 0, 1)
+            .unsqueeze(0)
+            .to(device, dtype=text_embeddings.dtype)
+        )
+ 
+        # Encoder l'image dans l'espace latent
+        init_latents_orig = pipe.vae.encode(img_tensor).latent_dist.sample(generator=generator)
+        init_latents_orig = init_latents_orig * pipe.vae.config.scaling_factor
+ 
+        # Convertir le masque en tenseur [0, 1] et redimensionner aux dimensions latentes
+        # Le masque est 1 (blanc) où on veut régénérer, 0 (noir) où on conserve
+        mask_array = np.array(mask.convert("L")).astype(np.float32) / 255.0
+        mask_tensor = (
+            torch.from_numpy(mask_array)
+            .unsqueeze(0)
+            .unsqueeze(0)
+            .to(device, dtype=text_embeddings.dtype)
+        )
+        mask_latent = torch.nn.functional.interpolate(
+            mask_tensor, size=(height // 8, width // 8), mode="nearest"
+        ) # ---- FIN AJOUT V1
+
     # 4. Boucle de débruitage
-    for t in tqdm(timesteps, desc="Denoising"):
+    for i, t in enumerate(tqdm(timesteps, desc="Denoising")):
         # Dupliquer les latents pour le guidage sans classifieur (CFG)
         latent_model_input = torch.cat([latents] * 2)
         latent_model_input = pipe.scheduler.scale_model_input(latent_model_input, t)
@@ -76,17 +119,26 @@ def generate_image(
         # À ce stade, les latents contiennent l'estimation actuelle de l'image bruitée au pas de temps t.
         # Pour l'inpainting, vous devez intégrer les latents de l'image originale bruitée dans
         # les régions non masquées ici, avant de passer au prochain pas de temps.
+                # --- Inpainting : fusionner les régions non masquées ---
+        if inpainting_mode and i < len(timesteps) - 1:
+            t_prev = timesteps[i + 1]
+            noise = torch.randn_like(init_latents_orig)
+            t_prev_tensor = torch.tensor([t_prev.item()], device=device)
+            noisy_orig_latents = pipe.scheduler.add_noise(
+                init_latents_orig, noise, t_prev_tensor
+            )
+            # Conserver l'original dans les zones non masquées, le généré dans les zones masquées
+            latents = (1 - mask_latent) * noisy_orig_latents + mask_latent * latents
 
     # 5. Décoder les latents en image
     latents = latents / pipe.vae.config.scaling_factor
-    image = pipe.vae.decode(latents).sample
+    decoded = pipe.vae.decode(latents).sample
 
     # Redimensionner de [-1, 1] vers [0, 1]
-    image = (image / 2 + 0.5).clamp(0, 1)
+    decoded = (decoded / 2 + 0.5).clamp(0, 1)
 
     # Convertir en PIL.Image
-    image = image.cpu().permute(0, 2, 3, 1).numpy()
-    pil_image = pipe.numpy_to_pil(image)[0]
+    decoded = decoded.cpu().permute(0, 2, 3, 1).numpy()
+    pil_image = pipe.numpy_to_pil(decoded)[0]
 
     return pil_image
-

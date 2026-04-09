@@ -1,17 +1,16 @@
 TP5/
-	rapport.html # Le rapport qui sera généré se trouvera ici, il devra avoir les bons chemins pour ses images.
+	rapport.html
 	requirements.txt
 	README.md
 	prompt.txt
 	.gitignore
 	.venv/
-	.vscode/
 	code/
-		diffusion.py
-		tp5.py
-		rapport.py
+		diffusion.py       # Module diffusion + inpainting
+		tp5.py             # Script principal (toutes les sections)
+		rapport.py         # Génération du rapport HTML
 	data/
-		dataInput/imgs/
+		dataInput/imgs/    # Images et masques fournis
 			baie_beauport.avif
 			baie_beauport_mask.png
 			chateau_frontenac.png
@@ -25,9 +24,9 @@ TP5/
 			pyramides.webp
 			pyramides_mask.png
 		dataOutput/
-			Section 1/
-			Section 2/
-			Section 3/
-			Section 4/
-			Section 5/
+			Section 1/       # Images générées (3+ prompts)
+			Section 2/       # Grille guidance scales
+			Section 3/       # Validation inpainting
+			Section 4/       # Suppression d'objets (4+ exemples)
+			Section 5/       # Remplacement d'objets (4+ exemples)
 			Bonus/
